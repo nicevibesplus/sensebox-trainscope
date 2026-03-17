@@ -1,0 +1,25 @@
+name: Auto-Format C++ Code
+
+on: [push]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Clang-Format
+        run: sudo apt-get install -y clang-format
+
+      - name: Run Clang-Format
+        run: |
+          find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\|h\)' -exec clang-format -i -style=Google {} +
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: automated code formatting"
