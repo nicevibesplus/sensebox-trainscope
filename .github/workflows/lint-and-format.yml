@@ -17,7 +17,7 @@ jobs:
 
       - name: Run Clang-Format
         run: |
-          find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\|h\)' -exec clang-format -i -style=Google {} +
+          find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\|h\|ino\)' -exec clang-format -i -style=Google {} +
 
       - name: Commit and Push Changes
         uses: stefanzweifel/git-auto-commit-action@v5
