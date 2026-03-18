@@ -2,8 +2,8 @@
 #include <BLEDevice.h>
 #include <BLEScan.h>
 #include <BLEUtils.h>
-#include <WiFi.h>
 #include <WebServer.h>
+#include <WiFi.h>
 
 // --- Configuration ---
 const char* ssid = "TrainSense";
@@ -21,13 +21,13 @@ BLEUUID gearUUID("2A56");
 
 // --- Global Variables ---
 WebServer server(80);
-int bleGear = 0;       
-int manualGear = 0;    
-bool manualMode = false; 
-int lastAppliedGear = -1; 
+int bleGear = 0;
+int manualGear = 0;
+bool manualMode = false;
+int lastAppliedGear = -1;
 bool forward = true;
 bool deviceFound = false;
-String webLog = ""; 
+String webLog = "";
 
 // BLE Globals
 BLEClient* pClient = nullptr;
@@ -37,7 +37,7 @@ BLEAddress* pServerAddress = nullptr;
 // --- Helper: Log to both Serial and Web ---
 void logToBoth(String msg) {
     Serial.println(msg);
-    webLog = "[" + String(millis()/1000) + "s] " + msg + "<br>" + webLog;
+    webLog = "[" + String(millis() / 1000) + "s] " + msg + "<br>" + webLog;
     if (webLog.length() > 2500) webLog = webLog.substring(0, 2500);
 }
 
@@ -46,7 +46,8 @@ bool isBleConnected() {
 }
 
 // --- BLE Callbacks ---
-static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length,
+                           bool isNotify) {
     bleGear = pData[0];
     if (!manualMode) {
         logToBoth("[BLE] Notification: Setting Gear to " + String(bleGear));
@@ -73,16 +74,24 @@ void handleRoot() {
     String html = "<html><head>";
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
     // Auto-refresh only in Auto mode
-    if (!manualMode) html += "<meta http-equiv='refresh' content='3'>"; 
-    
+    if (!manualMode) html += "<meta http-equiv='refresh' content='3'>";
+
     html += "<style>body{font-family:sans-serif; text-align:center; padding:20px; background:#f4f4f9;}";
-    html += ".card{background:white; padding:20px; border-radius:10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom:20px;}";
-    html += ".btn{display:inline-block; padding:12px 20px; background:#007bff; color:white; text-decoration:none; border-radius:5px; margin:5px; font-weight:bold;}";
+    html +=
+        ".card{background:white; padding:20px; border-radius:10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); "
+        "margin-bottom:20px;}";
+    html +=
+        ".btn{display:inline-block; padding:12px 20px; background:#007bff; color:white; text-decoration:none; "
+        "border-radius:5px; margin:5px; font-weight:bold;}";
     html += ".btn-mode{background:#6c757d;} .btn-stop{background:#dc3545;}";
     html += ".btn-disabled{background:#ccc; color:#888; cursor:not-allowed;}";
-    html += ".status-badge{padding:5px 15px; border-radius:20px; color:white; font-weight:bold; display:inline-block; margin-bottom:10px;}";
+    html +=
+        ".status-badge{padding:5px 15px; border-radius:20px; color:white; font-weight:bold; display:inline-block; "
+        "margin-bottom:10px;}";
     html += ".bg-online{background:#28a745;} .bg-offline{background:#dc3545;}";
-    html += ".console{text-align:left; background:#222; color:#0f0; padding:15px; font-family:monospace; height:180px; overflow-y:scroll; border-radius:5px; font-size:12px;}</style>";
+    html +=
+        ".console{text-align:left; background:#222; color:#0f0; padding:15px; font-family:monospace; height:180px; "
+        "overflow-y:scroll; border-radius:5px; font-size:12px;}</style>";
     html += "</head><body>";
 
     html += "<h1>TrainSense Monitor</h1>";
@@ -96,7 +105,8 @@ void handleRoot() {
         html += "<span class='status-badge bg-offline'>BLE DISCONNECTED</span>";
     }
     html += "<p>Control Mode: <strong>" + String(manualMode ? "MANUAL" : "AUTO (BLE)") + "</strong></p>";
-    html += "<a href='/toggleMode' class='btn btn-mode'>" + String(manualMode ? "Switch to AUTO" : "Switch to MANUAL") + "</a>";
+    html += "<a href='/toggleMode' class='btn btn-mode'>" + String(manualMode ? "Switch to AUTO" : "Switch to MANUAL") +
+            "</a>";
     html += "</div>";
 
     // --- Motor Output Card ---
@@ -104,11 +114,11 @@ void handleRoot() {
     html += "<h2>Motor Output</h2>";
     html += "<p style='font-size:28px;'>Current Gear: <strong>" + String(activeGear) + "</strong></p>";
     html += "<p>Direction: <strong>" + String(forward ? "FORWARD" : "REVERSE") + "</strong></p>";
-    
+
     // Manual controls only visible in Manual Mode
     if (manualMode) {
         html += "<hr><h3>Manual Controls</h3>";
-        
+
         // Invert button hidden if gear > 0
         if (manualGear == 0) {
             html += "<a href='/invert' class='btn'>Invert Direction</a><br><br>";
@@ -124,14 +134,14 @@ void handleRoot() {
 
     html += "<h3>Live Console</h3>";
     html += "<div class='console'>" + webLog + "</div>";
-    
+
     html += "</body></html>";
     server.send(200, "text/html", html);
 }
 
 void handleToggleMode() {
     manualMode = !manualMode;
-    manualGear = 0; 
+    manualGear = 0;
     logToBoth("[System] Mode Toggled to: " + String(manualMode ? "MANUAL" : "AUTO"));
     server.sendHeader("Location", "/");
     server.send(303);
@@ -161,11 +171,11 @@ void handleInvert() {
 // --- BLE Logic ---
 bool connectToServer() {
     logToBoth("[BLE] Attempting connection to Server...");
-    
+
     if (pClient == nullptr) {
         pClient = BLEDevice::createClient();
     }
-    
+
     if (!pClient->connect(*pServerAddress)) {
         logToBoth("[BLE] ERROR: Physical connection failed.");
         return false;
@@ -201,8 +211,8 @@ int gearToAnalog(int gear) {
 // --- Main Setup ---
 void setup() {
     Serial.begin(115200);
-    delay(2000); 
-    
+    delay(2000);
+
     logToBoth("========================================");
     logToBoth("    TRAINSENSE CLIENT BOOT SEQUENCE     ");
     logToBoth("========================================");
@@ -226,13 +236,13 @@ void setup() {
 
     logToBoth("[Setup] Initializing BLE Stack...");
     BLEDevice::init("TrainSense Client");
-    
+
     logToBoth("[Setup] Starting BLE Scan (30s)...");
     BLEScan* pBLEScan = BLEDevice::getScan();
     pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
     pBLEScan->setActiveScan(true);
     pBLEScan->start(30, false);
-    
+
     logToBoth("[Setup] Startup Complete.");
     logToBoth("----------------------------------------");
 }
@@ -242,7 +252,7 @@ void loop() {
 
     // Reconnection Logic
     if (deviceFound && !isBleConnected()) {
-        pRemoteCharacteristic = nullptr; 
+        pRemoteCharacteristic = nullptr;
         static unsigned long lastRetry = 0;
         if (millis() - lastRetry > 5000) {
             lastRetry = millis();
@@ -268,5 +278,5 @@ void loop() {
         digitalWrite(IN1, LOW);
     }
 
-    delay(50); 
+    delay(50);
 }
