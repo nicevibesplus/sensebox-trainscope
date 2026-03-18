@@ -5,8 +5,15 @@
 #include <BLEUtils.h>
 #include <Wire.h>
 #include <vl53l8cx.h>
+#include <Adafruit_AS7341.h>
+
 
 VL53L8CX sensor_vl53l8cx(&Wire, -1, -1);
+
+Adafruit_AS7341 as7341;
+
+uint16_t readings[12];
+
 
 // BLE Server name (this device)
 #define bleServerName "TrainSense Server"
@@ -15,8 +22,6 @@ BLECharacteristic *pCharacteristic;
 BLECharacteristic *pMessage;
 bool deviceConnected = false;
 String myMessage;
-
-int light_val = 0;
 
 class MyServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer *pServer) {
@@ -40,6 +45,17 @@ void setup() {
     sensor_vl53l8cx.set_ranging_frequency_hz(30);
     sensor_vl53l8cx.start_ranging();
     Wire.setClock(100000);
+
+    if (!as7341.begin()){ //Default address and I2C port
+        Serial.println("Could not find AS7341");
+        while (1) { delay(10); }
+    }
+    
+    as7341.setATIME(50);
+    as7341.setASTEP(500); //This combination of ATIME and ASTEP gives an integration time of about 1sec, so with two integrations, that's 2 seconds for a complete set of readings
+    as7341.setGain(AS7341_GAIN_256X);
+    
+    as7341.startReading();
 
     /*
     if (!hdc.begin()) {
@@ -90,14 +106,58 @@ void loop() {
 
             Serial.println(min_distance);
 
-            if (min_distance <= 15) {
+            if (min_distance <= 50) {
                 pCharacteristic->setValue(0);
+                pCharacteristic->notify();
             } else {
-                pCharacteristic->setValue(1);
+                pCharacteristic->setValue(2);
             }
 
+            while (!as7341.checkReadingProgress()) {
+                delay(10);
+            }
+            if (!as7341.readAllChannels()){
+                Serial.println("Error reading all channels!");
+                return;
+            }
+
+            // Werte holen
+            uint16_t red = as7341.getChannel(AS7341_CHANNEL_630nm_F7);   // Rot
+            uint16_t green = as7341.getChannel(AS7341_CHANNEL_555nm_F5); // Grün
+            uint16_t blue = as7341.getChannel(AS7341_CHANNEL_480nm_F3);  // Blau
+
+            uint16_t maxVal = max(red, max(green, blue));
+
+            if (maxVal == 0) maxVal = 1;
+
+            uint8_t R = (uint32_t)red * 255 / maxVal;
+            uint8_t G = (uint32_t)green * 255 / maxVal;
+            uint8_t B = (uint32_t)blue * 255 / maxVal;
+
+            const uint16_t threshold = 100; 
+
+            if (maxVal < threshold) {
+                Serial.println("No Color Detected (Too Dark)");
+            } 
+            else if (R > G && R > B) {
+                // Red is the strongest channel
+                Serial.println("Detected Red");
+                pCharacteristic->setValue(0); 
+            } 
+            else if (G > R && G > B) {
+                // Green is the strongest channel
+                Serial.println("Detected Green");
+                // pCharacteristic->setValue(1); // Example for other colors
+            } 
+            else if (B > R && B > G) {
+                // Blue is the strongest channel
+                Serial.println("Detected Blue");
+                // pCharacteristic->setValue(2);
+            }
             pCharacteristic->notify();
         }
+
+        as7341.startReading();
 
         delay(100);
     }
