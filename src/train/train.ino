@@ -1,3 +1,4 @@
+#include <Adafruit_AS7341.h>
 #include <Arduino.h>
 #include <BLE2902.h>
 #include <BLEDevice.h>
@@ -5,17 +6,14 @@
 #include <BLEUtils.h>
 #include <Wire.h>
 #include <vl53l8cx.h>
-#include <Adafruit_AS7341.h>
+
 #include "esp_camera.h"
-
-
 
 VL53L8CX sensor_vl53l8cx(&Wire, -1, -1);
 
 Adafruit_AS7341 as7341;
 
 uint16_t readings[12];
-
 
 // BLE Server name (this device)
 #define bleServerName "TrainSense Server"
@@ -48,15 +46,18 @@ void setup() {
     sensor_vl53l8cx.start_ranging();
     Wire.setClock(100000);
 
-    if (!as7341.begin()){ //Default address and I2C port
+    if (!as7341.begin()) {  // Default address and I2C port
         Serial.println("Could not find AS7341");
-        while (1) { delay(10); }
+        while (1) {
+            delay(10);
+        }
     }
-    
+
     as7341.setATIME(50);
-    as7341.setASTEP(500); //This combination of ATIME and ASTEP gives an integration time of about 1sec, so with two integrations, that's 2 seconds for a complete set of readings
+    as7341.setASTEP(500);  // This combination of ATIME and ASTEP gives an integration time of about 1sec, so with two
+                           // integrations, that's 2 seconds for a complete set of readings
     as7341.setGain(AS7341_GAIN_256X);
-    
+
     as7341.startReading();
 
     camera_config_t config;
@@ -88,13 +89,13 @@ void setup() {
 
     if (config.pixel_format == PIXFORMAT_JPEG) {
         if (psramFound()) {
-        config.jpeg_quality = 4;
-        config.fb_count = 1;
-        config.frame_size = FRAMESIZE_VGA;
-        config.grab_mode = CAMERA_GRAB_LATEST;
+            config.jpeg_quality = 4;
+            config.fb_count = 1;
+            config.frame_size = FRAMESIZE_VGA;
+            config.grab_mode = CAMERA_GRAB_LATEST;
         } else {
-        config.frame_size = FRAMESIZE_QVGA;
-        config.fb_location = CAMERA_FB_IN_DRAM;
+            config.frame_size = FRAMESIZE_QVGA;
+            config.fb_location = CAMERA_FB_IN_DRAM;
         }
     } else {
         config.frame_size = FRAMESIZE_240X240;
@@ -176,23 +177,23 @@ void loop() {
 
             if (red > green && red > blue) {
                 Serial.println("Detected Red");
-            } 
+            }
             else if (green > red && green > blue) {
                 // Red is the strongest channel
                 Serial.println("Detected green");
-                pCharacteristic->setValue(0); 
-            } 
+                pCharacteristic->setValue(0);
+            }
             else if (blue > red && blue > green) {
                 // Green is the strongest channel
                 Serial.println("Detected blue");
                 // pCharacteristic->setValue(1); // Example for other colors
-            } 
+            }
             pCharacteristic->notify();
 
         as7341.startReading();
         */
         }
-        
+
         pCharacteristic->notify();
         delay(100);
     }
