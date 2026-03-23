@@ -2,9 +2,9 @@
 #include <BLEDevice.h>
 #include <BLEScan.h>
 #include <BLEUtils.h>
+#include <LittleFS.h>
 #include <WebServer.h>
 #include <WiFi.h>
-#include <LittleFS.h>
 
 // --- Configuration ---
 const char* ssid = "TrainSense";
@@ -82,10 +82,10 @@ void handleRoot() {
 void handleStatus() {
     int activeGear = manualMode ? manualGear : bleGear;
     bool connected = isBleConnected();
-    
+
     // Clean up logs so they don't break the JSON format
     String safeLogs = webLog;
-    safeLogs.replace("\"", "\\\""); 
+    safeLogs.replace("\"", "\\\"");
 
     // Build a manual JSON string
     String json = "{";
@@ -106,7 +106,7 @@ void handleToggleMode() {
     manualMode = !manualMode;
     manualGear = 0;
     logToBoth("[System] Mode Toggled to: " + String(manualMode ? "MANUAL" : "AUTO"));
-    server.send(200, "text/plain", "OK"); // No more 303 Redirects!
+    server.send(200, "text/plain", "OK");  // No more 303 Redirects!
 }
 
 void handleSetGear() {
