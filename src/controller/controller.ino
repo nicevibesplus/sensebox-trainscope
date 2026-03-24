@@ -2,6 +2,7 @@
 #include <BLEDevice.h>
 #include <BLEScan.h>
 #include <BLEUtils.h>
+#include <LittleFS.h>
 #include <WebServer.h>
 #include <WiFi.h>
 
@@ -68,83 +69,44 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
 
 // --- Web Server Routes ---
 void handleRoot() {
+    if (!LittleFS.exists("/index.html")) {
+        server.send(404, "text/plain", "Error: LittleFS file not found. Did you upload the data folder?");
+        return;
+    }
+    // Just serve the raw file. The JavaScript will fetch the data separately.
+    File file = LittleFS.open("/index.html", "r");
+    server.streamFile(file, "text/html");
+    file.close();
+}
+
+void handleStatus() {
     int activeGear = manualMode ? manualGear : bleGear;
     bool connected = isBleConnected();
 
-    String html = "<html><head>";
-    html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
-    // Auto-refresh only in Auto mode
-    if (!manualMode) html += "<meta http-equiv='refresh' content='3'>";
+    // Clean up logs so they don't break the JSON format
+    String safeLogs = webLog;
+    safeLogs.replace("\"", "\\\"");
 
-    html += "<style>body{font-family:sans-serif; text-align:center; padding:20px; background:#f4f4f9;}";
-    html +=
-        ".card{background:white; padding:20px; border-radius:10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); "
-        "margin-bottom:20px;}";
-    html +=
-        ".btn{display:inline-block; padding:12px 20px; background:#007bff; color:white; text-decoration:none; "
-        "border-radius:5px; margin:5px; font-weight:bold;}";
-    html += ".btn-mode{background:#6c757d;} .btn-stop{background:#dc3545;}";
-    html += ".btn-disabled{background:#ccc; color:#888; cursor:not-allowed;}";
-    html +=
-        ".status-badge{padding:5px 15px; border-radius:20px; color:white; font-weight:bold; display:inline-block; "
-        "margin-bottom:10px;}";
-    html += ".bg-online{background:#28a745;} .bg-offline{background:#dc3545;}";
-    html +=
-        ".console{text-align:left; background:#222; color:#0f0; padding:15px; font-family:monospace; height:180px; "
-        "overflow-y:scroll; border-radius:5px; font-size:12px;}</style>";
-    html += "</head><body>";
+    // Build a manual JSON string
+    String json = "{";
+    json += "\"gear\":" + String(activeGear) + ",";
+    json += "\"mode\":\"" + String(manualMode ? "MANUAL" : "AUTO (BLE)") + "\",";
+    json += "\"status\":\"" + String(connected ? "BLE CONNECTED" : "BLE SEARCHING...") + "\",";
+    json += "\"online\":" + String(connected ? "true" : "false") + ",";
+    json += "\"dir\":\"" + String(forward ? "FORWARD" : "REVERSE") + "\",";
+    json += "\"ctrlClass\":\"" + String(manualMode ? "" : "disabled") + "\",";
+    json += "\"invClass\":\"" + String((manualMode && activeGear == 0) ? "" : "disabled") + "\",";
+    json += "\"logs\":\"" + safeLogs + "\"";
+    json += "}";
 
-    html += "<h1>TrainSense Monitor</h1>";
-
-    // --- Connection Status Card ---
-    html += "<div class='card'>";
-    html += "<h3>System Status</h3>";
-    if (connected) {
-        html += "<span class='status-badge bg-online'>BLE CONNECTED</span>";
-    } else {
-        html += "<span class='status-badge bg-offline'>BLE DISCONNECTED</span>";
-    }
-    html += "<p>Control Mode: <strong>" + String(manualMode ? "MANUAL" : "AUTO (BLE)") + "</strong></p>";
-    html += "<a href='/toggleMode' class='btn btn-mode'>" + String(manualMode ? "Switch to AUTO" : "Switch to MANUAL") +
-            "</a>";
-    html += "</div>";
-
-    // --- Motor Output Card ---
-    html += "<div class='card'>";
-    html += "<h2>Motor Output</h2>";
-    html += "<p style='font-size:28px;'>Current Gear: <strong>" + String(activeGear) + "</strong></p>";
-    html += "<p>Direction: <strong>" + String(forward ? "FORWARD" : "REVERSE") + "</strong></p>";
-
-    // Manual controls only visible in Manual Mode
-    if (manualMode) {
-        html += "<hr><h3>Manual Controls</h3>";
-
-        // Invert button hidden if gear > 0
-        if (manualGear == 0) {
-            html += "<a href='/invert' class='btn'>Invert Direction</a><br><br>";
-        } else {
-            html += "<span class='btn btn-disabled'>Stop to Invert</span><br><br>";
-        }
-
-        html += "<a href='/setGear?v=0' class='btn btn-stop'>STOP (0)</a>";
-        html += "<a href='/setGear?v=1' class='btn'>Gear 1</a>";
-        html += "<a href='/setGear?v=2' class='btn'>Gear 2</a>";
-    }
-    html += "</div>";
-
-    html += "<h3>Live Console</h3>";
-    html += "<div class='console'>" + webLog + "</div>";
-
-    html += "</body></html>";
-    server.send(200, "text/html", html);
+    server.send(200, "application/json", json);
 }
 
 void handleToggleMode() {
     manualMode = !manualMode;
     manualGear = 0;
     logToBoth("[System] Mode Toggled to: " + String(manualMode ? "MANUAL" : "AUTO"));
-    server.sendHeader("Location", "/");
-    server.send(303);
+    server.send(200, "text/plain", "OK");  // No more 303 Redirects!
 }
 
 void handleSetGear() {
@@ -152,20 +114,17 @@ void handleSetGear() {
         manualGear = server.arg("v").toInt();
         logToBoth("[Manual] Set Gear to " + String(manualGear));
     }
-    server.sendHeader("Location", "/");
-    server.send(303);
+    server.send(200, "text/plain", "OK");
 }
 
 void handleInvert() {
-    // Hidden URL safety check
     if (manualMode && manualGear == 0) {
         forward = !forward;
         logToBoth("[Manual] Direction swapped to " + String(forward ? "Forward" : "Reverse"));
     } else {
         logToBoth("[System] Rejecting Invert: Constraints not met.");
     }
-    server.sendHeader("Location", "/");
-    server.send(303);
+    server.send(200, "text/plain", "OK");
 }
 
 // --- BLE Logic ---
@@ -223,6 +182,12 @@ void setup() {
     pinMode(IN1, OUTPUT);
     pinMode(IN2, OUTPUT);
 
+    // Initialize LittleFS
+    logToBoth("[Setup] Mounting LittleFS...");
+    if (!LittleFS.begin(true)) {
+        Serial.println("[Setup] LittleFS Mount Failed");
+    }
+
     logToBoth("[Setup] Configuring WiFi Hotspot...");
     WiFi.softAP(ssid, password);
     logToBoth("[Setup] IP: " + WiFi.softAPIP().toString());
@@ -232,6 +197,7 @@ void setup() {
     server.on("/toggleMode", handleToggleMode);
     server.on("/setGear", handleSetGear);
     server.on("/invert", handleInvert);
+    server.on("/status", handleStatus);
     server.begin();
 
     logToBoth("[Setup] Initializing BLE Stack...");

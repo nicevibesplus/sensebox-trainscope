@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TrainSense Pro</title>
+    <style>
+        :root { 
+            --bg: #0f1014; 
+            --card: #1c1e26; 
+            --accent: #007aff; 
+            --danger: #ff3b30; 
+            --success: #34c759; 
+            --text: #ffffff; 
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            padding: 40px 20px 20px 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+
+        /* --- Smartphone Status Bar --- */
+        .status-bar {
+            position: fixed; top: 0; left: 0; width: 100%; height: 28px; background: #000; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; box-sizing: border-box; font-size: 12px; font-weight: 600; color: #fff; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sb-right { display: flex; align-items: center; gap: 10px; }
+        .sb-badge { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 10px; letter-spacing: 1px; }
+        .ble-icon { width: 14px; height: 14px; stroke: var(--danger); transition: stroke 0.3s; }
+        .ble-icon.connected { stroke: var(--accent); }
+        
+        .container { width: 100%; max-width: 400px; }
+        .header { margin-bottom: 25px; text-align: center; }
+        h1 { margin: 0; font-size: 28px; letter-spacing: -0.5px; }
+        
+        .main-card { 
+            background: var(--card); border-radius: 24px; padding: 30px 20px; text-align: center; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 20px; 
+        }
+        .gear-label { color: #888; text-transform: uppercase; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+        
+        /* --- Symmetrical Speedometer --- */
+        .speedometer { position: relative; width: 200px; height: 120px; margin: 15px auto; }
+        .gauge-bg { fill: none; stroke: #2c2e3a; stroke-width: 12; stroke-linecap: round; }
+        .gauge-mark { fill: #666; font-size: 10px; font-weight: bold; font-family: monospace; letter-spacing: 1px; }
+        .needle { transform-origin: 100px 100px; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .gear-value-overlay { position: absolute; bottom: -15px; left: 0; width: 100%; text-align: center; font-size: 32px; font-weight: 800; color: var(--accent); text-shadow: 0 0 10px rgba(0, 122, 255, 0.2); }
+        .direction { font-weight: 600; color: #aaa; margin-bottom: 5px; margin-top: 15px; }
+        
+        .controls { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        button.btn { background: #2c2e3a; color: white; padding: 18px; border-radius: 18px; font-weight: 600; transition: all 0.2s; border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer; font-size: 16px; font-family: inherit; }
+        button.btn:active { transform: scale(0.95); background: #3a3d4d; }
+        button.btn-outline { background: transparent; border: 2px solid #333; }
+        button.btn-stop { background: var(--danger); border: none; }
+
+        /* --- Combined Throttle Lever UI --- */
+        .throttle-container { background: #2c2e3a; padding: 25px 15px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; align-items: center; }
+        .throttle-labels { display: flex; justify-content: space-between; width: 100%; color: #888; font-size: 11px; font-weight: bold; margin-bottom: 20px; }
+        .throttle-labels span { width: 20%; text-align: center; }
+
+        input[type=range] { -webkit-appearance: none; width: 90%; background: transparent; margin: 0; }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 14px; cursor: pointer; background: #1c1e26; border-radius: 10px; border: 1px solid #333; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
+        input[type=range]::-webkit-slider-thumb { height: 48px; width: 32px; border-radius: 8px; background: linear-gradient(180deg, #444 0%, #222 100%); cursor: pointer; -webkit-appearance: none; margin-top: -18px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 2px 2px rgba(255,255,255,0.2); border: 2px solid #555; transition: transform 0.1s; }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(0.9); background: var(--accent); border-color: #fff; }
+        input[type=range]:disabled::-webkit-slider-thumb { background: #333; border-color: #555; cursor: not-allowed; box-shadow: none; }
+        input[type=range]:disabled::-webkit-slider-runnable-track { cursor: not-allowed; }
+
+        /* --- Collapsible Console --- */
+        .console-container { width: 100%; margin-top: 20px; }
+        .console-btn { background: transparent; color: #888; border: none; width: 100%; text-align: left; padding: 10px 5px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-family: inherit; outline: none; }
+        .console { background: #000; border-radius: 15px; padding: 15px; height: 150px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00; text-align: left; border: 1px solid #222; margin-top: 5px; }
+        .console.hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="status-bar">
+        <div id="sb-time">--:--</div>
+        <div class="sb-right">
+            <span id="sb-mode-badge" class="sb-badge">LOAD</span>
+            <svg id="sb-ble-icon" class="ble-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline>
+            </svg>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>TrainSense Pro</h1>
+        </div>
+
+        <div class="main-card">
+            <div class="gear-label">Throttle Dashboard</div>
+            
+            <div class="speedometer">
+                <svg viewBox="0 0 200 120">
+                    <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+                    <text x="5" y="115" class="gauge-mark">REV</text>
+                    <text x="88" y="15" class="gauge-mark">STOP</text>
+                    <text x="175" y="115" class="gauge-mark">FWD</text>
+                    
+                    <g class="needle" id="gauge-needle" style="transform: rotate(0deg);">
+                        <polygon points="97,100 103,100 100,25" fill="var(--accent)" />
+                        <circle cx="100" cy="100" r="8" fill="#fff" />
+                        <circle cx="100" cy="100" r="3" fill="var(--bg)" />
+                    </g>
+                </svg>
+                <div id="ui-gear" class="gear-value-overlay">0</div>
+            </div>
+
+            <div id="ui-dir" class="direction">STANDING</div>
+        </div>
+
+        <div class="controls">
+            <div class="throttle-container">
+                <div class="throttle-labels">
+                    <span style="color: var(--danger);">-2</span>
+                    <span>-1</span>
+                    <span style="color: #fff;">STOP</span>
+                    <span>+1</span>
+                    <span style="color: var(--accent);">+2</span>
+                </div>
+                <input type="range" id="throttle-lever" min="-2" max="2" step="1" value="0" disabled onchange="handleLeverDrop(this)">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <button onclick="sendCmd('/toggleMode')" class="btn btn-outline">Toggle Mode</button>
+                <button onclick="forceStop()" class="btn btn-stop">E-STOP</button>
+            </div>
+        </div>
+
+        <div class="console-container">
+            <button class="console-btn" onclick="toggleLogs()">
+                <span>System Logs</span>
+                <span id="log-chevron">▼</span>
+            </button>
+            <div id="ui-logs" class="console">Connecting to TrainSense...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentDirState = "FORWARD";
+        let currentGearState = 0; 
+
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('sb-time').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }, 1000);
+
+        function sendCmd(url) {
+            fetch(url).then(() => fetchStatus());
+        }
+
+        function forceStop() {
+            document.getElementById('throttle-lever').value = 0;
+            sendCmd('/setGear?v=0');
+        }
+
+        // Toggles the console visibility
+        function toggleLogs() {
+            const logs = document.getElementById('ui-logs');
+            const chevron = document.getElementById('log-chevron');
+            if (logs.classList.contains('hidden')) {
+                logs.classList.remove('hidden');
+                chevron.innerText = "▼";
+            } else {
+                logs.classList.add('hidden');
+                chevron.innerText = "▲";
+            }
+        }
+
+        async function handleLeverDrop(slider) {
+            slider.disabled = true; 
+            
+            let targetValue = parseInt(slider.value);
+            
+            // CROSS-OVER PROTECTION
+            if (currentGearState > 0) {
+                if ((currentDirState === "FORWARD" && targetValue < 0) || 
+                    (currentDirState === "REVERSE" && targetValue > 0)) {
+                    targetValue = 0; 
+                    slider.value = 0; 
+                }
+            }
+
+            const targetGear = Math.abs(targetValue);
+            
+            let targetDir = currentDirState;
+            if (targetValue < 0) targetDir = "REVERSE";
+            if (targetValue > 0) targetDir = "FORWARD";
+
+            try {
+                if (targetDir !== currentDirState) {
+                    await fetch('/invert');
+                    currentDirState = targetDir;
+                }
+                
+                await fetch('/setGear?v=' + targetGear);
+            } catch (err) {
+                console.error("Communication error", err);
+            }
+            
+            fetchStatus();
+        }
+
+        function fetchStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    currentDirState = data.dir; 
+                    currentGearState = data.gear; 
+
+                    let visualLeverValue = data.gear;
+                    if (data.dir === "REVERSE") visualLeverValue = -data.gear;
+
+                    document.getElementById('ui-gear').innerText = data.gear;
+                    document.getElementById('ui-dir').innerText = data.gear === 0 ? "STANDING" : data.dir;
+                    document.getElementById('ui-logs').innerHTML = data.logs;
+
+                    document.getElementById('sb-mode-badge').innerText = data.mode === "MANUAL" ? "MAN" : "AUTO";
+                    document.getElementById('sb-mode-badge').style.background = data.mode === "MANUAL" ? "var(--accent)" : "var(--success)";
+                    
+                    const bleIcon = document.getElementById('sb-ble-icon');
+                    if (data.online) bleIcon.classList.add('connected');
+                    else bleIcon.classList.remove('connected');
+
+                    const throttle = document.getElementById('throttle-lever');
+                    throttle.value = visualLeverValue;
+                    throttle.disabled = (data.mode !== "MANUAL");
+
+                    const angles = { "-2": -70, "-1": -35, "0": 0, "1": 35, "2": 70 };
+                    const targetAngle = angles[visualLeverValue.toString()] || 0;
+                    document.getElementById('gauge-needle').style.transform = `rotate(${targetAngle}deg)`;
+                })
+                .catch(err => console.error("Error fetching status:", err));
+        }
+
+        fetchStatus();
+        setInterval(fetchStatus, 800);
+    </script>
+</body>
+</html>
