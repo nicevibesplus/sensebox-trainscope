@@ -3,10 +3,11 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <TrainScope_Object_Detection_inferencing.h>
 #include <Wire.h>
 #include <vl53l8cx.h>
+
 #include "esp_camera.h"
-#include <TrainScope_Object_Detection_inferencing.h>
 
 VL53L8CX sensor_vl53l8cx(&Wire, -1, -1);
 
