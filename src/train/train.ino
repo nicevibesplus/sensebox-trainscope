@@ -3,15 +3,20 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <TrainScope_Object_Detection_inferencing.h>
 #include <Wire.h>
 #include <vl53l8cx.h>
+
 #include "esp_camera.h"
+<<<<<<< HEAD
 #include <TrainScope_Object_Detection_inferencing.h>
 #include "esp_heap_caps.h"
 
 // NEU: Bibliotheken für WLAN und Webserver
 #include <WiFi.h>
 #include <esp_http_server.h>
+=======
+>>>>>>> 7cbfbfc8236a4bd182b2caaba408027ee442dd46
 
 VL53L8CX sensor_vl53l8cx(&Wire, -1, -1);
 uint16_t readings[12];
