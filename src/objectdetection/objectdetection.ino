@@ -5,7 +5,6 @@
 
 camera_fb_t *fb = NULL;
 
-
 int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
     size_t pixel_ix = offset;
     size_t pixels_left = length;
@@ -42,7 +41,7 @@ void setup() {
         Serial.println("You MUST enable PSRAM in Tools -> PSRAM -> Enabled.");
         while (true) {
             delay(1000);
-        }  
+        }
     } else {
         Serial.printf("[DEBUG] PSRAM found! Total PSRAM: %d bytes\n", ESP.getPsramSize());
     }
