@@ -1,16 +1,11 @@
-/* * 1. INCLUDE YOUR EDGE IMPULSE LIBRARY HERE
- * Replace this with the exact name of your downloaded library!
- */
+
 #include <TrainScope_Object_Detection_inferencing.h>
 
 #include "esp_camera.h"
 
-// Pointer to the camera frame buffer
 camera_fb_t *fb = NULL;
 
-/*
- * 2. Signal Provider Callback
- */
+
 int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
     size_t pixel_ix = offset;
     size_t pixels_left = length;
@@ -19,18 +14,14 @@ int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
     uint16_t *buf = (uint16_t *)fb->buf;
 
     while (pixels_left != 0) {
-        // 1. Get the pixel
         uint16_t pixel = buf[pixel_ix];
 
-        // 2. SWAP THE BYTES (ESP32-CAM quirk)
         pixel = (pixel >> 8) | (pixel << 8);
 
-        // 3. Extract RGB channels
         uint8_t r = (pixel >> 8) & 0xF8;
         uint8_t g = (pixel >> 3) & 0xFC;
         uint8_t b = (pixel << 3) & 0xF8;
 
-        // 4. Pack into RGB888 format (0xRRGGBB)
         uint32_t rgb888 = (r << 16) | (g << 8) | b;
         out_ptr[out_ptr_ix] = (float)rgb888;
 
@@ -46,13 +37,12 @@ void setup() {
     while (!Serial);
     Serial.println("\n\n--- Starting ESP32-CAM Edge Impulse Object Detection ---");
 
-    // DEBUG: Check PSRAM. If this fails, the model WILL crash!
     if (!psramFound()) {
         Serial.println("[CRITICAL ERROR] PSRAM not found or not enabled!");
         Serial.println("You MUST enable PSRAM in Tools -> PSRAM -> Enabled.");
         while (true) {
             delay(1000);
-        }  // Halt execution
+        }  
     } else {
         Serial.printf("[DEBUG] PSRAM found! Total PSRAM: %d bytes\n", ESP.getPsramSize());
     }
@@ -88,8 +78,6 @@ void setup() {
         Serial.printf("[ERROR] Camera init failed with error 0x%x\n", err);
         return;
     }
-
-    // Print Model Info
 }
 
 void loop() {
