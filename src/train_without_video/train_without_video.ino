@@ -4,12 +4,13 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <TrainScope_Object_Detection_inferencing.h>
+#include <WiFi.h>
 #include <Wire.h>
+#include <esp_http_server.h>
 #include <vl53l8cx.h>
+
 #include "esp_camera.h"
 #include "esp_heap_caps.h"
-#include <WiFi.h>
-#include <esp_http_server.h>
 
 VL53L8CX sensor_vl53l8cx(&Wire, -1, -1);
 uint16_t readings[12];
@@ -51,8 +52,6 @@ camera_fb_t *fb = NULL;
 // }
 
 // void startCameraServer() {}
-
-
 
 int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
     size_t pixels_left = length;
@@ -155,10 +154,7 @@ void setup() {
     pServer->setCallbacks(new MyServerCallbacks());
 
     BLEService *pService = pServer->createService(BLEUUID((uint16_t)0x181A));
-    pCharacteristic = pService->createCharacteristic(
-        BLEUUID((uint16_t)0x2A56),
-        BLECharacteristic::PROPERTY_NOTIFY
-    );
+    pCharacteristic = pService->createCharacteristic(BLEUUID((uint16_t)0x2A56), BLECharacteristic::PROPERTY_NOTIFY);
 
     pService->start();
 
@@ -201,7 +197,7 @@ void loop() {
         sensor_vl53l8cx.get_ranging_data(&Result);
         Wire.setClock(100000);
 
-       uint16_t min_distance = 65535; 
+        uint16_t min_distance = 65535;
 
         Serial.println("\n--- ToF Distance Matrix (mm) ---");
 
@@ -212,13 +208,13 @@ void loop() {
 
                 Serial.printf("%4d ", current_dist);
 
-                if (current_dist <= min_distance){
+                if (current_dist <= min_distance) {
                     min_distance = current_dist;
                 }
             }
-            Serial.println(); 
+            Serial.println();
         }
-        
+
         if (min_distance <= 150) {
             tof_emergency = true;
             Serial.println("ToF Stop");
