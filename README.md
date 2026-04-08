@@ -1,8 +1,8 @@
-# TrainScope 🚂🤖
+# TrainScope 🚂
 
 **Autonomous Model Railway System powered by senseBox Eye**
 
-## 📖 Project Overview
+## Project Overview
 TrainScope is an autonomous model railway system. It is based on a classic analog model train enhanced with self-driving capabilities. The system operates on 15 V DC electrified tracks and uses a wireless dual-node architecture with two senseBox Eye microcontrollers. 
 
 One unit, located on the train itself, detects trackside signs for speed control and obstacles for emergency braking. It processes sensor data and wirelessly transmits a gear command to a stationary unit. This stationary senseBox adjusts the track voltage accordingly to accelerate, decelerate, or stop the train.
@@ -12,7 +12,7 @@ The primary motivation behind TrainScope is to demonstrate the integration of mo
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 The project is divided into two primary hardware and software nodes, which communicate via Bluetooth.
 
@@ -29,16 +29,15 @@ The Track Controller functions as the central communication hub and regulates th
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 This repository contains the source code for both nodes of the TrainScope system:
 
 ```text
 src/
 │
-├── train/                             # Source code for the mobile senseBox Eye
-│   ├── TrainScope_Object_Detection/   # Exported FOMO model library
-│   └── train.ino                      # Sensor reading, ML inference, and Bluetooth TX
+├── train_with_video                   # Source code for the mobile senseBox Eye with video transmission
+├── train_without_video                # Source code for the mobile senseBox Eye without video transmission
 │
 ├── controller/                        # Source code for the stationary senseBox Eye
 │   ├── data/                          # HTML/CSS/JS for the dashboard
