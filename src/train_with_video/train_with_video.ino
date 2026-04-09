@@ -42,6 +42,7 @@ static const char *_STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" 
 static const char *_STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
 static const char *_STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
 
+//HTML page
 static esp_err_t index_handler(httpd_req_t *req) {
     const char *html =
         "<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head>"
@@ -54,6 +55,7 @@ static esp_err_t index_handler(httpd_req_t *req) {
     return httpd_resp_send(req, html, HTTPD_RESP_USE_STRLEN);
 }
 
+// stream handler for vid
 static esp_err_t stream_handler(httpd_req_t *req) {
     esp_err_t res = ESP_OK;
     size_t _jpg_buf_len = 0;
@@ -93,6 +95,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
     return res;
 }
 
+// start wifi
 void startCameraServer() {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
@@ -106,6 +109,7 @@ void startCameraServer() {
     }
 }
 
+// get camera data
 int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
     size_t pixels_left = length;
     size_t out_ptr_ix = 0;
@@ -238,7 +242,7 @@ void loop() {
     if (in_cooldown) {
         if (millis() - cooldown_timer > COOLDOWN_TIME) {
             in_cooldown = false;
-            Serial.println("Cooldown vorbei! Achte wieder auf Stoppschilder.");
+            Serial.println("Cooldown end");
         }
     }
 
@@ -248,11 +252,13 @@ void loop() {
 
     fb = esp_camera_fb_get();
     if (!fb) {
-        Serial.println("Kamera Fehler");
+        Serial.println("Camera error");
         delay(100);
         return;
     }
 
+
+    // ToF logic
     if ((!status) && (NewDataReady != 0)) {
         Wire.setClock(1000000);
         sensor_vl53l8cx.get_ranging_data(&Result);
@@ -265,12 +271,13 @@ void loop() {
             }
         }
 
-        if (min_distance <= 100) {
+        if (min_distance <= 150) {
             tof_emergency = true;
-            Serial.println("ToF NOTSTOPP!");
+            Serial.println("ToF E-Stop");
         }
     }
 
+    // Model logic
     signal_t signal;
     signal.total_length = EI_CLASSIFIER_INPUT_WIDTH * EI_CLASSIFIER_INPUT_HEIGHT;
     signal.get_data = &raw_feature_get_data;
@@ -279,10 +286,11 @@ void loop() {
     EI_IMPULSE_ERROR ei_err = run_classifier(&signal, &result, false);
 
     if (ei_err != EI_IMPULSE_OK) {
-        Serial.printf("[ERROR] Failed to run classifier (%d)\n", ei_err);
+        Serial.printf("Failed to run classifier (%d)\n", ei_err);
         esp_camera_fb_return(fb);
         return;
     }
+
 
     for (uint32_t i = 0; i < result.bounding_boxes_count; i++) {
         ei_impulse_result_bounding_box_t bb = result.bounding_boxes[i];
@@ -290,25 +298,29 @@ void loop() {
 
         Serial.printf("  Found %s (Confidence: %.2f)\n", bb.label, bb.value);
 
+        // stop sign
         if (strcmp(bb.label, "stop") == 0) {
             if (!is_stopped_by_sign && !in_cooldown) {
                 is_stopped_by_sign = true;
                 stop_timer = millis();
-                Serial.println("Stoppschild erkannt! Halte für 5 Sekunden...");
+                Serial.println("Stop for 5 sec");
             } else if (in_cooldown) {
-                Serial.println("Sehe Stoppschild, bin im Cooldown -> Ignoriert!");
+                Serial.println("Ignore stop");
             }
+        // fast sign
         } else if (strcmp(bb.label, "fast") == 0) {
             current_speed_mode = 2;
+        // slow sign
         } else if (strcmp(bb.label, "slow") == 0) {
             current_speed_mode = 1;
         }
     }
-
+    
     esp_camera_fb_return(fb);
 
     uint8_t final_ble_value = current_speed_mode;
 
+    // cooldown for stop sign
     if (is_stopped_by_sign) {
         if (millis() - stop_timer < 5000) {
             final_ble_value = 0;
@@ -316,7 +328,7 @@ void loop() {
             is_stopped_by_sign = false;
             in_cooldown = true;
             cooldown_timer = millis();
-            Serial.println("Stopp vorbei. 4s Cooldown gestartet.");
+            Serial.println("Stop finished");
         }
     }
 

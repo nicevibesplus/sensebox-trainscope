@@ -34,6 +34,7 @@ class MyServerCallbacks : public BLEServerCallbacks {
 
 camera_fb_t *fb = NULL;
 
+// Webserver and Bluetooth
 // httpd_handle_t camera_httpd = NULL;
 
 // #define PART_BOUNDARY "123456789000000000000987654321"
@@ -53,6 +54,7 @@ camera_fb_t *fb = NULL;
 
 // void startCameraServer() {}
 
+// get camera data
 int raw_feature_get_data(size_t offset, size_t length, float *out_ptr) {
     size_t pixels_left = length;
     size_t out_ptr_ix = 0;
@@ -105,6 +107,7 @@ void setup() {
     // startCameraServer();
     // delay(500);
 
+    // sensor setup
     Wire.begin();
     Wire.setClock(100000);
 
@@ -192,6 +195,7 @@ void loop() {
     fb = esp_camera_fb_get();
     if (!fb) return;
 
+    // ToF logic
     if ((!status) && (NewDataReady != 0)) {
         Wire.setClock(1000000);
         sensor_vl53l8cx.get_ranging_data(&Result);
@@ -199,7 +203,7 @@ void loop() {
 
         uint16_t min_distance = 65535;
 
-        Serial.println("\n--- ToF Distance Matrix (mm) ---");
+        Serial.println("\n--- ToF Distance---");
 
         for (int y = 0; y < 8; y++) {
             for (int x = 0; x < 6; x++) {
@@ -221,6 +225,7 @@ void loop() {
         }
     }
 
+    // Model logic
     signal_t signal;
     signal.total_length = EI_CLASSIFIER_INPUT_WIDTH * EI_CLASSIFIER_INPUT_HEIGHT;
     signal.get_data = &raw_feature_get_data;
@@ -232,6 +237,7 @@ void loop() {
         auto bb = result.bounding_boxes[i];
         if (bb.value == 0) continue;
 
+        // stop sign
         if (strcmp(bb.label, "stop") == 0) {
             if (!is_stopped_by_sign && !in_cooldown) {
                 is_stopped_by_sign = true;
@@ -248,6 +254,7 @@ void loop() {
 
     uint8_t final_ble_value = current_speed_mode;
 
+    //cooldown for stop
     if (is_stopped_by_sign) {
         if (millis() - stop_timer < 5000) {
             final_ble_value = 0;
