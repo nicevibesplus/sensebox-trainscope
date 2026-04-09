@@ -6,21 +6,17 @@
 #include <WebServer.h>
 #include <WiFi.h>
 
-// --- Configuration ---
-const char* ssid = "TrainSense";
+const char* ssid = "TrainScope Controller";
 const char* password = "pw123456";
 
-// Motor Pins
 const unsigned int IN1 = 14;
 const unsigned int IN2 = 48;
 const unsigned int EN_5V = 21;
 
-// BLE Constants
-#define bleServerName "TrainSense Server"
+#define bleServerName "TrainScope Server"
 BLEUUID serviceUUID("181A");
 BLEUUID gearUUID("2A56");
 
-// --- Global Variables ---
 WebServer server(80);
 int bleGear = 0;
 int manualGear = 0;
@@ -30,12 +26,10 @@ bool forward = true;
 bool deviceFound = false;
 String webLog = "";
 
-// BLE Globals
 BLEClient* pClient = nullptr;
 BLERemoteCharacteristic* pRemoteCharacteristic = nullptr;
 BLEAddress* pServerAddress = nullptr;
 
-// --- Helper: Log to both Serial and Web ---
 void logToBoth(String msg) {
     Serial.println(msg);
     webLog = "[" + String(millis() / 1000) + "s] " + msg + "<br>" + webLog;
@@ -46,7 +40,7 @@ bool isBleConnected() {
     return (pClient != nullptr && pClient->isConnected());
 }
 
-// --- BLE Callbacks ---
+// ble callback for receiving gears
 static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length,
                            bool isNotify) {
     bleGear = pData[0];
@@ -67,27 +61,26 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
     }
 };
 
-// --- Web Server Routes ---
+// web server handler
 void handleRoot() {
     if (!LittleFS.exists("/index.html")) {
         server.send(404, "text/plain", "Error: LittleFS file not found. Did you upload the data folder?");
         return;
     }
-    // Just serve the raw file. The JavaScript will fetch the data separately.
+
     File file = LittleFS.open("/index.html", "r");
     server.streamFile(file, "text/html");
     file.close();
 }
 
+// api handler for status updates
 void handleStatus() {
     int activeGear = manualMode ? manualGear : bleGear;
     bool connected = isBleConnected();
 
-    // Clean up logs so they don't break the JSON format
     String safeLogs = webLog;
     safeLogs.replace("\"", "\\\"");
 
-    // Build a manual JSON string
     String json = "{";
     json += "\"gear\":" + String(activeGear) + ",";
     json += "\"mode\":\"" + String(manualMode ? "MANUAL" : "AUTO (BLE)") + "\",";
@@ -102,13 +95,15 @@ void handleStatus() {
     server.send(200, "application/json", json);
 }
 
+// endpoint to toggle between manual and auto mode
 void handleToggleMode() {
     manualMode = !manualMode;
     manualGear = 0;
     logToBoth("[System] Mode Toggled to: " + String(manualMode ? "MANUAL" : "AUTO"));
-    server.send(200, "text/plain", "OK");  // No more 303 Redirects!
+    server.send(200, "text/plain", "OK");
 }
 
+// endpoint to set manual gear
 void handleSetGear() {
     if (manualMode && server.hasArg("v")) {
         manualGear = server.arg("v").toInt();
@@ -117,6 +112,7 @@ void handleSetGear() {
     server.send(200, "text/plain", "OK");
 }
 
+// endpoint to invert direction
 void handleInvert() {
     if (manualMode && manualGear == 0) {
         forward = !forward;
@@ -127,7 +123,7 @@ void handleInvert() {
     server.send(200, "text/plain", "OK");
 }
 
-// --- BLE Logic ---
+// core function to connect to the BLE server
 bool connectToServer() {
     logToBoth("[BLE] Attempting connection to Server...");
 
@@ -161,19 +157,19 @@ bool connectToServer() {
     return true;
 }
 
+// maps gear levels to PWM values for motor control
 int gearToAnalog(int gear) {
     if (gear == 1) return 192;
     if (gear == 2) return 255;
     return 0;
 }
 
-// --- Main Setup ---
 void setup() {
     Serial.begin(115200);
     delay(2000);
 
     logToBoth("========================================");
-    logToBoth("    TRAINSENSE CLIENT BOOT SEQUENCE     ");
+    logToBoth("    TRAINSCOPE CLIENT BOOT SEQUENCE     ");
     logToBoth("========================================");
 
     logToBoth("[Setup] Initializing Motor Hardware...");
@@ -182,7 +178,6 @@ void setup() {
     pinMode(IN1, OUTPUT);
     pinMode(IN2, OUTPUT);
 
-    // Initialize LittleFS
     logToBoth("[Setup] Mounting LittleFS...");
     if (!LittleFS.begin(true)) {
         Serial.println("[Setup] LittleFS Mount Failed");
@@ -201,7 +196,7 @@ void setup() {
     server.begin();
 
     logToBoth("[Setup] Initializing BLE Stack...");
-    BLEDevice::init("TrainSense Client");
+    BLEDevice::init("TrainScope Client");
 
     logToBoth("[Setup] Starting BLE Scan (30s)...");
     BLEScan* pBLEScan = BLEDevice::getScan();
@@ -216,7 +211,6 @@ void setup() {
 void loop() {
     server.handleClient();
 
-    // Reconnection Logic
     if (deviceFound && !isBleConnected()) {
         pRemoteCharacteristic = nullptr;
         static unsigned long lastRetry = 0;

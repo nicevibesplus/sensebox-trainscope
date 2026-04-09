@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TrainSense Pro</title>
+    <title>TrainScope</title>
     <style>
         :root { 
             --bg: #0f1014; 
@@ -57,7 +57,6 @@
         button.btn-outline { background: transparent; border: 2px solid #333; }
         button.btn-stop { background: var(--danger); border: none; }
 
-        /* --- Combined Throttle Lever UI --- */
         .throttle-container { background: #2c2e3a; padding: 25px 15px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; align-items: center; }
         .throttle-labels { display: flex; justify-content: space-between; width: 100%; color: #888; font-size: 11px; font-weight: bold; margin-bottom: 20px; }
         .throttle-labels span { width: 20%; text-align: center; }
@@ -70,7 +69,6 @@
         input[type=range]:disabled::-webkit-slider-thumb { background: #333; border-color: #555; cursor: not-allowed; box-shadow: none; }
         input[type=range]:disabled::-webkit-slider-runnable-track { cursor: not-allowed; }
 
-        /* --- Collapsible Console --- */
         .console-container { width: 100%; margin-top: 20px; }
         .console-btn { background: transparent; color: #888; border: none; width: 100%; text-align: left; padding: 10px 5px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-family: inherit; outline: none; }
         .console { background: #000; border-radius: 15px; padding: 15px; height: 150px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00; text-align: left; border: 1px solid #222; margin-top: 5px; }
@@ -90,7 +88,7 @@
 
     <div class="container">
         <div class="header">
-            <h1>TrainSense Pro</h1>
+            <h1>TrainScope</h1>
         </div>
 
         <div class="main-card">
@@ -138,7 +136,7 @@
                 <span>System Logs</span>
                 <span id="log-chevron">▼</span>
             </button>
-            <div id="ui-logs" class="console">Connecting to TrainSense...</div>
+            <div id="ui-logs" class="console">Connecting to TrainScope...</div>
         </div>
     </div>
 
@@ -160,7 +158,6 @@
             sendCmd('/setGear?v=0');
         }
 
-        // Toggles the console visibility
         function toggleLogs() {
             const logs = document.getElementById('ui-logs');
             const chevron = document.getElementById('log-chevron');
@@ -178,7 +175,6 @@
             
             let targetValue = parseInt(slider.value);
             
-            // CROSS-OVER PROTECTION
             if (currentGearState > 0) {
                 if ((currentDirState === "FORWARD" && targetValue < 0) || 
                     (currentDirState === "REVERSE" && targetValue > 0)) {
