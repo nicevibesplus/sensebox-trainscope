@@ -4,12 +4,13 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <TrainScope_Object_Detection_inferencing.h>
+#include <WiFi.h>
 #include <Wire.h>
+#include <esp_http_server.h>
 #include <vl53l8cx.h>
+
 #include "esp_camera.h"
 #include "esp_heap_caps.h"
-#include <WiFi.h>
-#include <esp_http_server.h>
 
 VL53L8CX sensor_vl53l8cx(&Wire, -1, -1);
 uint16_t readings[12];
@@ -33,7 +34,7 @@ class MyServerCallbacks : public BLEServerCallbacks {
 
 camera_fb_t *fb = NULL;
 
-//Webserver and Bluetooth
+// Webserver and Bluetooth
 httpd_handle_t camera_httpd = NULL;
 
 #define PART_BOUNDARY "123456789000000000000987654321"
@@ -151,14 +152,13 @@ void setup() {
         }
     }
 
-
     Serial.println("Start WIFI...");
-    WiFi.softAP("TrainScope_Video", "12345678"); 
-    startCameraServer();  
+    WiFi.softAP("TrainScope_Video", "12345678");
+    startCameraServer();
 
     delay(500);
 
-    // Sensor Setup 
+    // Sensor Setup
     Wire.begin();
     Wire.setClock(100000);
 
@@ -192,7 +192,7 @@ void setup() {
     config.pixel_format = PIXFORMAT_RGB565;
     config.frame_size = FRAMESIZE_96X96;
     config.jpeg_quality = 12;
-    config.fb_count = 2;  
+    config.fb_count = 2;
     config.fb_location = CAMERA_FB_IN_PSRAM;
     config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
 
