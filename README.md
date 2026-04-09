@@ -29,6 +29,33 @@ The Track Controller functions as the central communication hub and regulates th
 
 ---
 
+## Installation & Setup Guide
+
+### Prerequisites
+1. **Install Arduino IDE:** Download and install the latest version from the [official Arduino website](https://www.arduino.cc/en/software/).
+2. **Install LittleFS Upload Plugin:** This is required to upload the web dashboard files to the track controller. Follow the installation instructions for the [arduino-littlefs-upload](https://github.com/earlephilhower/arduino-littlefs-upload) plugin.
+
+### 1. Get the Code
+Clone the TrainScope repository to your local machine:
+```bash
+git clone [https://github.com/nicevibesplus/sensebox-trainscope.git](https://github.com/nicevibesplus/sensebox-trainscope.git)
+```
+
+### 2. Setup the Train
+1. Open the Arduino IDE
+2. Install the AI model: Navigate to Sketch > Include Library > Add .ZIP Library... and select the trainScope_Fomo.zip file
+3. Open the Train sketch in the IDE.
+4. Connect the Train's senseBox to your computer via USB and select the appropriate board and COM port.
+5. Compile and Upload the code to the train's senseBox.
+
+### 3. Setup the Track Controller
+1. Open the Track Controller sketch in the Arduino IDE.
+2. Connect the Track Controller's senseBox to your computer via USB and select the appropriate board and COM port.
+3. Upload the Web Interface: Open the command palette (CTRL + SHIFT + P), type Upload LittleFS to ESP32, and execute it. This uploads the data/index.html file to the microcontroller's internal filesystem.
+4. Compile and Upload the code to the Track Controller's senseBox.
+
+---
+
 ## Repository Structure
 
 This repository contains the source code for both nodes of the TrainScope system:
