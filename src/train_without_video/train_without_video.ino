@@ -254,7 +254,7 @@ void loop() {
 
     uint8_t final_ble_value = current_speed_mode;
 
-    //cooldown for stop
+    // cooldown for stop
     if (is_stopped_by_sign) {
         if (millis() - stop_timer < 5000) {
             final_ble_value = 0;

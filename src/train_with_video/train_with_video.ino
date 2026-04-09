@@ -42,7 +42,7 @@ static const char *_STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" 
 static const char *_STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
 static const char *_STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
 
-//HTML page
+// HTML page
 static esp_err_t index_handler(httpd_req_t *req) {
     const char *html =
         "<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head>"
@@ -257,7 +257,6 @@ void loop() {
         return;
     }
 
-
     // ToF logic
     if ((!status) && (NewDataReady != 0)) {
         Wire.setClock(1000000);
@@ -291,7 +290,6 @@ void loop() {
         return;
     }
 
-
     for (uint32_t i = 0; i < result.bounding_boxes_count; i++) {
         ei_impulse_result_bounding_box_t bb = result.bounding_boxes[i];
         if (bb.value == 0) continue;
@@ -307,15 +305,15 @@ void loop() {
             } else if (in_cooldown) {
                 Serial.println("Ignore stop");
             }
-        // fast sign
+            // fast sign
         } else if (strcmp(bb.label, "fast") == 0) {
             current_speed_mode = 2;
-        // slow sign
+            // slow sign
         } else if (strcmp(bb.label, "slow") == 0) {
             current_speed_mode = 1;
         }
     }
-    
+
     esp_camera_fb_return(fb);
 
     uint8_t final_ble_value = current_speed_mode;
