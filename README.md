@@ -39,6 +39,8 @@ src/
 ├── train_with_video                   # Source code for the mobile senseBox Eye with video transmission
 ├── train_without_video                # Source code for the mobile senseBox Eye without video transmission
 │
+├── trainScope_Fomo.zip                # arduino libary which includes sign detection model
+│
 ├── controller/                        # Source code for the stationary senseBox Eye
 │   ├── data/                          # HTML/CSS/JS for the dashboard
 │   └── controller.ino                 # PWM logic, Motor Driver control, and Bluetooth R
